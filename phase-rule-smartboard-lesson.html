@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase Rule — Physical Pharmaceutics I</title>
+<style>
+  :root{
+    --board:#1c2b21;
+    --board-dark:#141f18;
+    --chalk:#f2efe3;
+    --chalk-dim:#c9c5b4;
+    --blue:#8ecfe8;
+    --green:#93dfae;
+    --amber:#eeaa66;
+    --tray:#3c5346;
+    --line:#4a6355;
+  }
+  *{box-sizing:border-box;}
+  html,body{
+    margin:0; padding:0; height:100%; overflow:hidden;
+    background:var(--board-dark);
+    color:var(--chalk);
+    font-family:"Segoe UI","Helvetica Neue",Arial,sans-serif;
+  }
+  .display{font-family:Georgia,"Times New Roman",serif;}
+
+  #deck{
+    position:relative; width:100vw; height:100vh;
+    display:flex; transition:transform .55s cubic-bezier(.65,0,.35,1);
+  }
+  .slide{
+    flex:0 0 100vw; height:100vh; position:relative;
+    background:
+      radial-gradient(ellipse at 20% 15%, rgba(255,255,255,0.035), transparent 45%),
+      radial-gradient(ellipse at 80% 85%, rgba(255,255,255,0.03), transparent 50%),
+      var(--board);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:min(5vh,40px) min(6vw,60px);
+    overflow:hidden;
+  }
+  .slide-inner{ width:100%; max-width:1150px; display:flex; flex-direction:column; align-items:center; gap:22px; }
+
+  h1.title{ font-size:clamp(42px,7vw,88px); margin:0; letter-spacing:.5px; text-align:center; }
+  h2.headline{ font-size:clamp(26px,3.6vw,42px); margin:0 0 4px; text-align:center; font-weight:600; }
+  p.lede{ font-size:clamp(16px,1.7vw,21px); color:var(--chalk-dim); text-align:center; max-width:760px; line-height:1.55; margin:0; }
+  .tagline{ font-size:clamp(14px,1.4vw,17px); color:var(--chalk-dim); letter-spacing:.4px; }
+
+  .underline-chalk{
+    display:inline-block; position:relative;
+  }
+  .underline-chalk::after{
+    content:""; position:absolute; left:-2%; right:-2%; bottom:-6px; height:6px;
+    background:var(--amber); opacity:.55; border-radius:3px;
+    transform:scaleX(0); transform-origin:left; animation:draw 1s .3s ease forwards;
+  }
+  @keyframes draw{ to{ transform:scaleX(1);} }
+
+  .fade-up{ opacity:0; transform:translateY(14px); animation:fadeUp .7s ease forwards; }
+  @keyframes fadeUp{ to{ opacity:1; transform:translateY(0);} }
+
+  /* nav */
+  .nav-btn{
+    position:fixed; top:50%; transform:translateY(-50%);
+    width:52px; height:52px; border-radius:50%; border:1.5px solid var(--line);
+    background:rgba(255,255,255,0.04); color:var(--chalk); font-size:22px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; z-index:50; transition:.2s;
+  }
+  .nav-btn:hover{ background:rgba(255,255,255,0.12); border-color:var(--chalk-dim); }
+  .nav-btn:disabled{ opacity:.25; cursor:default; }
+  #prevBtn{ left:18px; } #nextBtn{ right:18px; }
+
+  #dots{ position:fixed; bottom:16px; left:50%; transform:translateX(-50%); display:flex; gap:9px; z-index:50; }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--line); cursor:pointer; transition:.2s; }
+  .dot.active{ background:var(--amber); transform:scale(1.3); }
+
+  #slideLabel{ position:fixed; top:16px; right:22px; font-size:12px; letter-spacing:1px; color:var(--chalk-dim); z-index:50; }
+
+  /* equation card */
+  .eq-card{
+    background:var(--board-dark); border:1.5px solid var(--line); border-radius:14px;
+    padding:22px 40px; font-size:clamp(32px,5vw,54px); letter-spacing:2px; display:flex; gap:10px;
+  }
+  .eq-part{ cursor:pointer; padding:2px 8px; border-radius:6px; transition:.2s; }
+  .eq-part:hover{ background:rgba(255,255,255,0.08); }
+  .eq-F{ color:var(--chalk); } .eq-C{ color:var(--blue); } .eq-P{ color:var(--amber); }
+  .strike{ text-decoration:line-through; opacity:.35; }
+
+  .chip-row{ display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .chip{ padding:9px 18px; border-radius:999px; border:1.5px solid var(--line); font-size:15px; cursor:pointer; user-select:none; }
+  .chip.f{ color:var(--chalk); border-color:var(--chalk-dim); }
+  .chip.c{ color:var(--blue); border-color:var(--blue); }
+  .chip.p{ color:var(--amber); border-color:var(--amber); }
+  .reveal-box{
+    min-height:34px; max-width:620px; text-align:center; color:var(--chalk-dim); font-size:16px; line-height:1.5;
+  }
+
+  /* term cards */
+  .card-row{ display:flex; gap:22px; flex-wrap:wrap; justify-content:center; }
+  .flip-card{ width:280px; height:190px; perspective:1200px; cursor:pointer; }
+  .flip-inner{ position:relative; width:100%; height:100%; transition:transform .6s; transform-style:preserve-3d; }
+  .flip-card.flipped .flip-inner{ transform:rotateY(180deg); }
+  .flip-face{ position:absolute; inset:0; backface-visibility:hidden; border-radius:14px; border:1.5px solid var(--line);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; padding:18px; text-align:center; }
+  .flip-front{ background:var(--board-dark); }
+  .flip-back{ background:var(--tray); transform:rotateY(180deg); font-size:14.5px; line-height:1.45; color:var(--chalk); }
+  .flip-front .term{ font-size:22px; font-weight:600; margin-top:8px; }
+  .flip-front .sym{ font-size:34px; }
+  .flip-hint{ font-size:11px; color:var(--chalk-dim); margin-top:10px; letter-spacing:.5px; }
+
+  /* diagrams */
+  .diagram-wrap{ display:flex; gap:26px; align-items:flex-start; flex-wrap:wrap; justify-content:center; width:100%; }
+  canvas{ background:var(--board-dark); border:1.5px solid var(--line); border-radius:10px; cursor:crosshair; max-width:100%; }
+  .info-panel{
+    width:300px; min-height:230px; background:var(--tray); border:1.5px solid var(--line); border-radius:12px;
+    padding:18px; font-size:14.5px; line-height:1.55;
+  }
+  .info-panel .ph-name{ font-size:19px; font-weight:600; margin-bottom:8px; }
+  .info-panel .formula-line{ color:var(--amber); font-family:Georgia,serif; font-size:16px; margin:10px 0; }
+  .placeholder-txt{ color:var(--chalk-dim); }
+
+  /* applications */
+  .app-grid{ display:grid; grid-template-columns:repeat(2,minmax(260px,1fr)); gap:18px; width:100%; max-width:820px; }
+  .app-card{ background:var(--board-dark); border:1.5px solid var(--line); border-radius:12px; padding:18px 20px; }
+  .app-card h3{ margin:0 0 6px; font-size:17px; color:var(--blue); }
+  .app-card p{ margin:0; font-size:14px; color:var(--chalk-dim); line-height:1.5; }
+
+  /* quiz */
+  .quiz-box{ width:100%; max-width:680px; }
+  .q-text{ font-size:clamp(18px,2.2vw,23px); margin-bottom:18px; text-align:center; }
+  .opt{ display:block; width:100%; text-align:left; padding:13px 18px; margin:9px 0; border-radius:10px;
+    border:1.5px solid var(--line); background:var(--board-dark); color:var(--chalk); font-size:15.5px; cursor:pointer; }
+  .opt:hover{ border-color:var(--chalk-dim); }
+  .opt.correct{ border-color:var(--green); background:rgba(147,223,174,0.12); }
+  .opt.wrong{ border-color:#e08a7d; background:rgba(224,138,125,0.12); }
+  .q-explain{ margin-top:14px; font-size:14.5px; color:var(--chalk-dim); text-align:center; min-height:20px; }
+  .q-progress{ text-align:center; font-size:13px; color:var(--chalk-dim); margin-bottom:6px; }
+  #nextQBtn{ display:none; margin:18px auto 0; padding:10px 22px; border-radius:8px; border:1.5px solid var(--amber);
+    background:transparent; color:var(--amber); font-size:14px; cursor:pointer; }
+
+  .summary-eq{ font-size:clamp(30px,4.5vw,46px); color:var(--amber); font-family:Georgia,serif; }
+  .mnemonic{ font-size:15px; color:var(--chalk-dim); font-style:italic; }
+  .takeaways{ list-style:none; padding:0; margin:8px 0 0; display:flex; flex-direction:column; gap:9px; max-width:520px; }
+  .takeaways li{ font-size:15px; padding-left:22px; position:relative; }
+  .takeaways li::before{ content:"—"; position:absolute; left:0; color:var(--blue); }
+
+  @media (max-width:760px){
+    .app-grid{ grid-template-columns:1fr; }
+    .nav-btn{ width:42px; height:42px; font-size:18px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="slideLabel">SLIDE <span id="curNum">1</span> / 9</div>
+<button class="nav-btn" id="prevBtn">‹</button>
+<button class="nav-btn" id="nextBtn">›</button>
+<div id="dots"></div>
+
+<div id="deck">
+
+  <!-- 0: TITLE -->
+  <section class="slide">
+    <div class="slide-inner">
+      <div class="tagline fade-up">B. PHARM · PHYSICAL PHARMACEUTICS I</div>
+      <h1 class="title display fade-up" style="animation-delay:.1s">The <span class="underline-chalk">Phase Rule</span></h1>
+      <p class="lede fade-up" style="animation-delay:.3s">One small equation that tells you exactly how much freedom a system has — whether it's ice melting, a cream separating, or two drugs melted together.</p>
+      <div class="tagline fade-up" style="animation-delay:.6s">Press → or click Next to begin</div>
+    </div>
+  </section>
+
+  <!-- 1: WHAT IS IT -->
+  <section class="slide">
+    <div class="slide-inner">
+      <h2 class="headline">What is the Phase Rule, really?</h2>
+      <p class="lede">Before you can build a diagram or solve a problem, ask a simpler question: <em>if I fix a few things about a system, how much am I still free to change?</em> Gibbs answered this with one equation.</p>
+      <div class="eq-card">
+        <span class="eq-part eq-F" data-k="F">F</span><span>=</span>
+        <span class="eq-part eq-C" data-k="C">C</span><span>−</span>
+        <span class="eq-part eq-P" data-k="P">P</span><span>+</span><span>2</span>
+      </div>
+      <div class="chip-row">
+        <div class="chip f" data-k="F">F — click me</div>
+        <div class="chip c" data-k="C">C — click me</div>
+        <div class="chip p" data-k="P">P — click me</div>
+      </div>
+      <div class="reveal-box" id="eqReveal">Click a letter above (or in the equation) to see what it means.</div>
+    </div>
+  </section>
+
+  <!-- 2: KEY TERMS -->
+  <section class="slide">
+    <div class="slide-inner">
+      <h2 class="headline">Three words you must be fluent in</h2>
+      <p class="lede">Tap each card to flip it.</p>
+      <div class="card-row" id="cardRow">
+        <div class="flip-card" data-term="phase">
+          <div class="flip-inner">
+            <div class="flip-face flip-front"><div class="sym">🧊</div><div class="term" style="color:var(--blue)">Phase</div><div class="flip-hint">TAP TO REVEAL</div></div>
+            <div class="flip-face flip-back">A physically distinct, uniform, mechanically separable part of a system. Ice + liquid water in one glass = <strong>2 phases</strong> — even though it's the same chemical substance.</div>
+          </div>
+        </div>
+        <div class="flip-card" data-term="component">
+          <div class="flip-inner">
+            <div class="flip-face flip-front"><div class="sym">🧪</div><div class="term" style="color:var(--green)">Component</div><div class="flip-hint">TAP TO REVEAL</div></div>
+            <div class="flip-face flip-back">The smallest number of independent chemical species needed to describe the composition of every phase. Salt dissolved in water is still just <strong>2 components</strong> (salt + water) even though it looks like one liquid.</div>
+          </div>
+        </div>
+        <div class="flip-card" data-term="dof">
+          <div class="flip-inner">
+            <div class="flip-face flip-front"><div class="sym">🎚️</div><div class="term" style="color:var(--amber)">Degree of Freedom</div><div class="flip-hint">TAP TO REVEAL</div></div>
+            <div class="flip-face flip-back">The number of variables (like temperature, pressure, composition) you can change independently <em>without</em> a phase appearing or disappearing.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3: WATER DIAGRAM -->
+  <section class="slide">
+    <div class="slide-inner">
+      <h2 class="headline">One-component system — Water</h2>
+      <p class="lede" style="max-width:820px">This is water's pressure–temperature map. Click anywhere on it — inside a region, on a curve, or right at the meeting point — and I'll tell you exactly what C, P and F are there.</p>
+      <div class="diagram-wrap">
+        <canvas id="waterCanvas" width="720" height="440" aria-label="Water phase diagram"></canvas>
+        <div class="info-panel" id="waterInfo">
+          <div class="placeholder-txt">Click a spot on the diagram to begin →</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4: CONDENSED RULE -->
+  <section class="slide">
+    <div class="slide-inner">
+      <h2 class="headline">Why pharmacists use a shortcut</h2>
+      <p class="lede" style="max-width:800px">Most pharmaceutical phase-rule problems involve two solids melting together — not gases. At ordinary room pressure, pressure barely changes where a solid melts. So we hold pressure constant and drop it from the equation.</p>
+      <div class="eq-card" style="gap:16px">
+        <span>F</span><span>=</span><span>C</span><span>−</span><span>P</span><span>+</span><span class="strike">2</span><span style="color:var(--amber)">1</span>
+      </div>
+      <p class="lede"><strong style="color:var(--amber)">Condensed (reduced) phase rule:</strong> F′ = C − P + 1, used whenever pressure is fixed — exactly the case for two solids and their melt.</p>
+    </div>
+  </section>
+
+  <!-- 5: EUTECTIC DIAGRAM -->
+  <section class="slide">
+    <div class="slide-inner">
+      <h2 class="headline">Two-component system — Salol &amp; Thymol</h2>
+      <p class="lede" style="max-width:820px">A classic pharmacy example: melt Salol and Thymol together in different proportions, then cool. Click the diagram to explore.</p>
+      <div class="diagram-wrap">
+        <canvas id="eutCanvas" width="720" height="440" aria-label="Salol Thymol eutectic phase diagram"></canvas>
+        <div class="info-panel" id="eutInfo">
+          <div class="placeholder-txt">Click a spot on the diagram to begin →</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6: APPLICATIONS -->
+  <section class="slide">
+    <div class="slide-inner">
+      <h2 class="headline">Where this actually matters in pharmacy</h2>
+      <div class="app-grid">
+        <div class="app-card"><h3>Eutectic mixtures</h3><p>Camphor + menthol, or lidocaine + prilocaine (EMLA cream) — mixing two solids can melt at a temperature far below either pure component, which changes how a product is formulated and stored.</p></div>
+        <div class="app-card"><h3>Freeze-drying</h3><p>Lyophilisation works by keeping a frozen product below its triple point pressure, so ice goes straight to vapour — sublimation — without ever becoming liquid.</p></div>
+        <div class="app-card"><h3>Creams &amp; emulsions</h3><p>Phase separation ("cracking") in an emulsion is literally a phase-rule event — a system moving from one phase to two.</p></div>
+        <div class="app-card"><h3>Polymorphism</h3><p>Cocoa butter in suppositories and many drug solids exist as different solid phases (polymorphs) with different stability and melting behaviour.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7: QUIZ -->
+  <section class="slide">
+    <div class="slide-inner quiz-box">
+      <h2 class="headline">Quick check</h2>
+      <div class="q-progress" id="qProgress">Question 1 of 4</div>
+      <div class="q-text" id="qText"></div>
+      <div id="qOpts"></div>
+      <div class="q-explain" id="qExplain"></div>
+      <button id="nextQBtn">Next question →</button>
+    </div>
+  </section>
+
+  <!-- 8: SUMMARY -->
+  <section class="slide">
+    <div class="slide-inner">
+      <h2 class="headline">Recap</h2>
+      <div class="summary-eq">F = C − P + 2 &nbsp;&nbsp;·&nbsp;&nbsp; F′ = C − P + 1</div>
+      <div class="mnemonic">"The more phases fighting for space, the less freedom you have."</div>
+      <ul class="takeaways">
+        <li>F = degrees of freedom, C = components, P = phases</li>
+        <li>At water's triple point, F = 0 — nothing can move</li>
+        <li>The condensed rule (F′ = C − P + 1) is used when pressure is fixed — the everyday case for drug-melt systems</li>
+        <li>Eutectic points are invariant points, just like the triple point — F′ = 0 there too</li>
+      </ul>
+    </div>
+  </section>
+
+</div>
+
+<script>
+// ---------- SLIDE NAVIGATION ----------
+const deck = document.getElementById('deck');
+const slides = document.querySelectorAll('.slide');
+const total = slides.length;
+let cur = 0;
+
+const dotsWrap = document.getElementById('dots');
+slides.forEach((_,i)=>{
+  const d = document.createElement('div');
+  d.className = 'dot' + (i===0?' active':'');
+  d.addEventListener('click', ()=>goTo(i));
+  dotsWrap.appendChild(d);
+});
+const dots = dotsWrap.querySelectorAll('.dot');
+const curNum = document.getElementById('curNum');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+
+function goTo(i){
+  cur = Math.max(0, Math.min(total-1, i));
+  deck.style.transform = `translateX(-${cur*100}vw)`;
+  dots.forEach((d,idx)=>d.classList.toggle('active', idx===cur));
+  curNum.textContent = cur+1;
+  prevBtn.disabled = cur===0;
+  nextBtn.disabled = cur===total-1;
+}
+prevBtn.addEventListener('click', ()=>goTo(cur-1));
+nextBtn.addEventListener('click', ()=>goTo(cur+1));
+document.addEventListener('keydown', e=>{
+  if(e.key==='ArrowRight') goTo(cur+1);
+  if(e.key==='ArrowLeft') goTo(cur-1);
+});
+goTo(0);
+
+// ---------- SLIDE 1: EQUATION REVEAL ----------
+const eqDefs = {
+  F: 'F — Degrees of Freedom: how many variables (T, P, composition) you can change independently without a phase appearing or vanishing.',
+  C: 'C — Number of Components: the smallest number of independent chemical species needed to describe every phase.',
+  P: 'P — Number of Phases: the physically distinct, uniform parts of the system.'
+};
+const eqReveal = document.getElementById('eqReveal');
+document.querySelectorAll('[data-k]').forEach(el=>{
+  el.addEventListener('click', ()=>{ eqReveal.textContent = eqDefs[el.dataset.k]; });
+});
+
+// ---------- SLIDE 2: FLIP CARDS ----------
+document.querySelectorAll('.flip-card').forEach(c=>{
+  c.addEventListener('click', ()=> c.classList.toggle('flipped'));
+});
+
+// ---------- CANVAS HELPERS ----------
+function setupCanvas(canvas){
+  const dpr = window.devicePixelRatio || 1;
+  const rect = canvas.getBoundingClientRect();
+  const logicalW = canvas.width, logicalH = canvas.height;
+  canvas.style.width = logicalW + 'px';
+  canvas.style.height = logicalH + 'px';
+  canvas.width = logicalW * dpr;
+  canvas.height = logicalH * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  return ctx;
+}
+function getLogicalClick(canvas, evt){
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.clientWidth ? (canvas.width / (window.devicePixelRatio||1)) / canvas.clientWidth : 1;
+  const x = (evt.clientX - rect.left) * (parseFloat(getComputedStyle(canvas).width) ? 1 : 1);
+  // Since canvas.style.width == logical px, clientX-rect.left already in logical coords
+  return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+}
+function pointInPolygon(pt, poly){
+  let inside = false;
+  for(let i=0, j=poly.length-1; i<poly.length; j=i++){
+    const xi=poly[i][0], yi=poly[i][1], xj=poly[j][0], yj=poly[j][1];
+    const intersect = ((yi>pt.y)!==(yj>pt.y)) && (pt.x < (xj-xi)*(pt.y-yi)/(yj-yi)+xi);
+    if(intersect) inside = !inside;
+  }
+  return inside;
+}
+function distToSegment(pt, a, b){
+  const A=pt.x-a[0], B=pt.y-a[1], C=b[0]-a[0], D=b[1]-a[1];
+  const dot=A*C+B*D, lenSq=C*C+D*D;
+  let t = lenSq!==0 ? dot/lenSq : -1;
+  t = Math.max(0, Math.min(1, t));
+  const xx=a[0]+t*C, yy=a[1]+t*D;
+  return Math.hypot(pt.x-xx, pt.y-yy);
+}
+function distToPolyline(pt, pts){
+  let min = Infinity;
+  for(let i=0;i<pts.length-1;i++) min = Math.min(min, distToSegment(pt, pts[i], pts[i+1]));
+  return min;
+}
+
+// ---------- WATER DIAGRAM ----------
+const waterCanvas = document.getElementById('waterCanvas');
+const wctx = setupCanvas(waterCanvas);
+const W = { x0:80, x1:680, y0:40, y1:380 };
+const triple = [230,300], critical=[620,90];
+const fusionLine = [[200,40],[210,170],[230,300]];
+const vapLine = [[230,300],[420,220],[620,90]];
+const sublLine = [[80,380],[230,300]];
+
+const waterRegions = [
+  { name:'Solid (Ice)', C:1, P:1,
+    poly:[[80,40],[200,40],[210,170],[230,300],[80,380]],
+    desc:'Only ice is present. Both temperature and pressure can be changed independently and ice remains the only phase.' },
+  { name:'Liquid (Water)', C:1, P:1,
+    poly:[[200,40],[680,40],[620,90],[420,220],[230,300],[210,170]],
+    desc:'Only liquid water is present. Both temperature and pressure are free to vary.' },
+  { name:'Vapour (Steam)', C:1, P:1,
+    poly:[[80,380],[230,300],[420,220],[620,90],[680,40],[680,380]],
+    desc:'Only water vapour is present. Both temperature and pressure are free to vary.' },
+];
+function waterInfoHTML(name, C, P, desc, invariant){
+  const F = invariant!==undefined ? invariant : (C-P+2);
+  return `<div class="ph-name">${name}</div>
+    <div class="formula-line">F = ${C} − ${P} + 2 = ${F}</div>
+    <div>${desc}</div>`;
+}
+function drawWater(){
+  const ctx = wctx;
+  ctx.clearRect(0,0,720,440);
+  // axes
+  ctx.strokeStyle = 'rgba(242,239,227,0.35)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(W.x0,W.y0); ctx.lineTo(W.x0,W.y1); ctx.lineTo(W.x1,W.y1); ctx.stroke();
+  ctx.fillStyle = '#c9c5b4'; ctx.font='13px Segoe UI, sans-serif';
+  ctx.fillText('Temperature →', W.x0+ (W.x1-W.x0)/2 - 55, W.y1+28);
+  ctx.save(); ctx.translate(28, W.y0+(W.y1-W.y0)/2+35); ctx.rotate(-Math.PI/2); ctx.fillText('Pressure →',0,0); ctx.restore();
+
+  function curve(pts, color){
+    ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]);
+    for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]);
+    ctx.stroke();
+  }
+  curve(fusionLine, '#8ecfe8');
+  curve(vapLine, '#eeaa66');
+  curve(sublLine, '#93dfae');
+
+  // labels
+  ctx.fillStyle='#8ecfe8'; ctx.font='14px Georgia, serif'; ctx.fillText('Solid', 120, 130);
+  ctx.fillStyle='#eeaa66'; ctx.fillText('Liquid', 420, 130);
+  ctx.fillStyle='#93dfae'; ctx.fillText('Vapour', 480, 340);
+
+  // triple point + critical point
+  ctx.fillStyle='#f2efe3'; ctx.beginPath(); ctx.arc(triple[0],triple[1],5,0,7); ctx.fill();
+  ctx.font='12px Segoe UI, sans-serif'; ctx.fillText('Triple point', triple[0]-30, triple[1]+22);
+  ctx.beginPath(); ctx.arc(critical[0],critical[1],5,0,7); ctx.fill();
+  ctx.fillText('Critical point', critical[0]-55, critical[1]-12);
+}
+drawWater();
+
+waterCanvas.addEventListener('click', (e)=>{
+  const pt = getLogicalClick(waterCanvas, e);
+  const info = document.getElementById('waterInfo');
+  if(Math.hypot(pt.x-triple[0], pt.y-triple[1]) < 14){
+    info.innerHTML = waterInfoHTML('Triple Point', 1, 3, 'Ice, liquid water and vapour all coexist — but only at this one exact temperature and pressure.', 0);
+    return;
+  }
+  if(distToPolyline(pt, fusionLine) < 9){
+    info.innerHTML = waterInfoHTML('Fusion curve (Solid ⇌ Liquid)', 1, 2, 'Ice and liquid water are in equilibrium — the melting/freezing line. Notice it leans slightly left: for water, higher pressure actually lowers the melting point.');
+    return;
+  }
+  if(distToPolyline(pt, vapLine) < 9){
+    info.innerHTML = waterInfoHTML('Vaporisation curve (Liquid ⇌ Vapour)', 1, 2, 'Liquid water and vapour are in equilibrium — this is the boiling/condensation line.');
+    return;
+  }
+  if(distToPolyline(pt, sublLine) < 9){
+    info.innerHTML = waterInfoHTML('Sublimation curve (Solid ⇌ Vapour)', 1, 2, 'Ice converts directly to vapour with no liquid step — this is exactly what happens during freeze-drying.');
+    return;
+  }
+  for(const r of waterRegions){
+    if(pointInPolygon(pt, r.poly)){
+      info.innerHTML = waterInfoHTML(r.name, r.C, r.P, r.desc);
+      return;
+    }
+  }
+  info.innerHTML = '<div class="placeholder-txt">Click inside the diagram — on a region, a curve, or the triple point.</div>';
+});
+
+// ---------- EUTECTIC DIAGRAM ----------
+const eutCanvas = document.getElementById('eutCanvas');
+const ectx = setupCanvas(eutCanvas);
+const E = { x0:80, x1:680, y0:40, y1:380 };
+const salolMP = [80,100], thymolMP=[680,160], eut=[380,320];
+const liqA = [salolMP, eut];
+const liqB = [thymolMP, eut];
+const eutLineArr = [[80,320],[680,320]];
+
+const eutRegions = [
+  { name:'Liquid (fully melted)', C:2, P:1,
+    poly:[[80,40],[680,40],[680,160],[380,320],[80,100]],
+    desc:'A single liquid melt of Salol and Thymol. Both temperature and composition can be varied freely.' },
+  { name:'Liquid + Solid Salol', C:2, P:2,
+    poly:[[80,100],[380,320],[80,320]],
+    desc:'Liquid melt with solid Salol crystals in it. Fixing the temperature automatically fixes the composition of the remaining liquid.' },
+  { name:'Liquid + Solid Thymol', C:2, P:2,
+    poly:[[680,160],[380,320],[680,320]],
+    desc:'Liquid melt with solid Thymol crystals in it. Fixing the temperature automatically fixes the composition of the remaining liquid.' },
+  { name:'Solid Salol + Solid Thymol', C:2, P:2,
+    poly:[[80,320],[680,320],[680,380],[80,380]],
+    desc:'The mixture has fully solidified into a two-solid mass of Salol and Thymol crystals.' },
+];
+function eutInfoHTML(name,C,P,desc,invariant){
+  const F = invariant!==undefined ? invariant : (C-P+1);
+  return `<div class="ph-name">${name}</div>
+    <div class="formula-line">F′ = ${C} − ${P} + 1 = ${F}</div>
+    <div>${desc}</div>`;
+}
+function drawEut(){
+  const ctx = ectx;
+  ctx.clearRect(0,0,720,440);
+  ctx.strokeStyle='rgba(242,239,227,0.35)'; ctx.lineWidth=1.5;
+  ctx.beginPath(); ctx.moveTo(E.x0,E.y0); ctx.lineTo(E.x0,E.y1); ctx.lineTo(E.x1,E.y1); ctx.stroke();
+  ctx.fillStyle='#c9c5b4'; ctx.font='13px Segoe UI, sans-serif';
+  ctx.fillText('% Thymol  (0% ————— 100%) →', E.x0+70, E.y1+28);
+  ctx.save(); ctx.translate(28, E.y0+160); ctx.rotate(-Math.PI/2); ctx.fillText('Temperature →',0,0); ctx.restore();
+
+  function line(pts,color){ ctx.strokeStyle=color; ctx.lineWidth=2.5; ctx.beginPath();
+    ctx.moveTo(pts[0][0],pts[0][1]); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i][0],pts[i][1]); ctx.stroke(); }
+  line(liqA,'#8ecfe8'); line(liqB,'#eeaa66'); line(eutLineArr,'#93dfae');
+
+  ctx.fillStyle='#f2efe3'; ctx.font='14px Georgia, serif';
+  ctx.fillText('Liquid', 340, 110);
+  ctx.font='12px Segoe UI, sans-serif'; ctx.fillStyle='#c9c5b4';
+  ctx.fillText('Liquid + Solid Salol', 110, 250);
+  ctx.fillText('Liquid + Solid Thymol', 470, 250);
+  ctx.fillText('Solid Salol + Solid Thymol', 260, 360);
+
+  ctx.fillStyle='#f2efe3';
+  ctx.beginPath(); ctx.arc(eut[0],eut[1],5,0,7); ctx.fill();
+  ctx.fillText('Eutectic point', eut[0]-40, eut[1]+22);
+  ctx.beginPath(); ctx.arc(salolMP[0],salolMP[1],4,0,7); ctx.fill();
+  ctx.fillText('Pure Salol m.p.', salolMP[0]-5, salolMP[1]-10);
+  ctx.beginPath(); ctx.arc(thymolMP[0],thymolMP[1],4,0,7); ctx.fill();
+  ctx.fillText('Pure Thymol m.p.', thymolMP[0]-100, thymolMP[1]-10);
+}
+drawEut();
+
+eutCanvas.addEventListener('click', (e)=>{
+  const pt = getLogicalClick(eutCanvas, e);
+  const info = document.getElementById('eutInfo');
+  if(Math.hypot(pt.x-eut[0], pt.y-eut[1]) < 14){
+    info.innerHTML = eutInfoHTML('Eutectic Point', 2, 3, 'Liquid, solid Salol and solid Thymol all coexist — the single lowest-melting composition of the pair. This is exactly why eutectic mixtures are used to lower melting points in formulations.', 0);
+    return;
+  }
+  if(distToPolyline(pt, liqA) < 9 || distToPolyline(pt, liqB) < 9){
+    info.innerHTML = eutInfoHTML('Liquidus curve', 2, 2, 'Liquid melt in equilibrium with one solidifying component. Fixing temperature fixes the liquid composition — and vice versa.');
+    return;
+  }
+  if(distToPolyline(pt, eutLineArr) < 9){
+    info.innerHTML = eutInfoHTML('Eutectic (solidus) line', 2, 2, 'The temperature at which the last bit of liquid solidifies across every composition.');
+    return;
+  }
+  for(const r of eutRegions){
+    if(pointInPolygon(pt, r.poly)){
+      info.innerHTML = eutInfoHTML(r.name, r.C, r.P, r.desc);
+      return;
+    }
+  }
+  info.innerHTML = '<div class="placeholder-txt">Click inside the diagram — on a region, a curve, or the eutectic point.</div>';
+});
+
+// ---------- QUIZ ----------
+const quizData = [
+  { q:'A beaker contains only liquid water at room temperature. What are C, P and F?',
+    opts:['C=1, P=1, F=2','C=1, P=2, F=1','C=2, P=1, F=3','C=1, P=1, F=1'],
+    correct:0,
+    explain:'One component (water), one phase (liquid) → F = 1 − 1 + 2 = 2. Both temperature and pressure are free.' },
+  { q:'At the triple point of water, how many degrees of freedom are there?',
+    opts:['3','2','1','0'],
+    correct:3,
+    explain:'Three phases coexist at one exact T and P → F = 1 − 3 + 2 = 0. It is an invariant point.' },
+  { q:'Two drugs are melted together and slowly cooled to the eutectic point. How many phases are present there?',
+    opts:['1','2','3','4'],
+    correct:2,
+    explain:'Liquid + Solid A + Solid B = 3 phases, giving F′ = 2 − 3 + 1 = 0.' },
+  { q:"Why do pharmacists use the condensed rule F′ = C − P + 1 for drug-melt systems?",
+    opts:['Because pressure barely affects solid–liquid equilibria, so it is held constant','Because solids have no pressure at all','Because Gibbs made an error in his original equation','Because two-component systems cannot include pressure'],
+    correct:0,
+    explain:'Pressure has almost no practical effect on where a solid melts, so it is fixed and dropped from the count of free variables.' }
+];
+let qi = 0;
+const qText = document.getElementById('qText');
+const qOpts = document.getElementById('qOpts');
+const qExplain = document.getElementById('qExplain');
+const qProgress = document.getElementById('qProgress');
+const nextQBtn = document.getElementById('nextQBtn');
+
+function renderQuiz(){
+  const item = quizData[qi];
+  qProgress.textContent = `Question ${qi+1} of ${quizData.length}`;
+  qText.textContent = item.q;
+  qExplain.textContent = '';
+  nextQBtn.style.display = 'none';
+  qOpts.innerHTML = '';
+  item.opts.forEach((opt, idx)=>{
+    const b = document.createElement('button');
+    b.className = 'opt'; b.textContent = opt;
+    b.addEventListener('click', ()=>{
+      if(b.classList.contains('locked')) return;
+      qOpts.querySelectorAll('.opt').forEach(o=>o.classList.add('locked'));
+      if(idx === item.correct){ b.classList.add('correct'); }
+      else {
+        b.classList.add('wrong');
+        qOpts.children[item.correct].classList.add('correct');
+      }
+      qExplain.textContent = item.explain;
+      if(qi < quizData.length-1) nextQBtn.style.display='inline-block';
+      else nextQBtn.style.display='none';
+    });
+    qOpts.appendChild(b);
+  });
+}
+nextQBtn.addEventListener('click', ()=>{ qi++; renderQuiz(); });
+renderQuiz();
+</script>
+</body>
+</html>
